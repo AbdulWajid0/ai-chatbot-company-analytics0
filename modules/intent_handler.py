@@ -2,7 +2,7 @@
 Intent Handler Module (Team 2 — NLP & Intent Recognition)
 ==========================================================
 Maps intents from the NLP engine to analytics operations.
-Acts as the bridge between Gemini's output and the analytics engine.
+Acts as the bridge between the LLM's output and the analytics engine.
 """
 
 from modules.analytics_engine import execute_analysis

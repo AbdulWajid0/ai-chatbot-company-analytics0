@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# --- API Configuration ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"  # or "gemini-2.0-pro" for more capable model
+# --- API Configuration (Groq) ---
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = "llama-3.3-70b-versatile"  # Fast & capable on Groq
 
 # --- App Configuration ---
 APP_TITLE = "🤖 AI Business Intelligence Chatbot"

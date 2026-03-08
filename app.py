@@ -2,7 +2,7 @@
 AI Business Intelligence Chatbot — Main Application
 =====================================================
 A Streamlit-based conversational BI assistant powered by
-Google Gemini API for natural language company data analysis.
+Groq API (LLaMA) for natural language company data analysis.
 
 Run: streamlit run app.py
 """
@@ -14,9 +14,9 @@ import os
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils.config import APP_TITLE, APP_ICON, PAGE_LAYOUT, GOOGLE_API_KEY
+from utils.config import APP_TITLE, APP_ICON, PAGE_LAYOUT, GROQ_API_KEY
 from modules.data_loader import load_all_datasets, get_dataset_summary
-from modules.nlp_engine import initialize_gemini, get_chat_session, send_message, clean_response_text
+from modules.nlp_engine import initialize_groq, get_chat_session, send_message, clean_response_text
 from modules.intent_handler import handle_intent
 from modules.insight_generator import generate_executive_summary, generate_quick_insights, get_suggested_questions
 from modules.report_generator import generate_report
@@ -240,8 +240,8 @@ def init_session_state():
         st.session_state.messages = []
     if "datasets" not in st.session_state:
         st.session_state.datasets = {}
-    if "gemini_model" not in st.session_state:
-        st.session_state.gemini_model = None
+    if "groq_client" not in st.session_state:
+        st.session_state.groq_client = None
     if "chat_session" not in st.session_state:
         st.session_state.chat_session = None
     if "page" not in st.session_state:
@@ -263,17 +263,17 @@ st.session_state.datasets = datasets
 
 
 # ============================================================
-# GEMINI INITIALIZATION
+# GROQ INITIALIZATION
 # ============================================================
-def init_gemini():
-    if st.session_state.gemini_model is None:
-        model = initialize_gemini()
-        if model:
-            st.session_state.gemini_model = model
+def init_groq():
+    if st.session_state.groq_client is None:
+        client = initialize_groq()
+        if client:
+            st.session_state.groq_client = client
             dataset_summary = get_dataset_summary(datasets)
-            st.session_state.chat_session = get_chat_session(model, dataset_summary)
+            st.session_state.chat_session = get_chat_session(client, dataset_summary)
 
-init_gemini()
+init_groq()
 
 
 # ============================================================
@@ -294,11 +294,11 @@ with st.sidebar:
     st.markdown("---")
 
     # API Status
-    if st.session_state.gemini_model:
-        st.success("✅ Gemini API Connected")
+    if st.session_state.groq_client:
+        st.success("✅ Groq API Connected (LLaMA)")
     else:
-        st.error("❌ Gemini API Not Connected")
-        st.info("Set your API key in the `.env` file")
+        st.error("❌ Groq API Not Connected")
+        st.info("Set your GROQ_API_KEY in the `.env` file")
 
     # Dataset Status
     st.markdown("### 📁 Loaded Datasets")
@@ -389,17 +389,17 @@ if st.session_state.page == "💬 Chat":
 
         if st.session_state.chat_session is None:
             bot_response = {
-                "text": "⚠️ Gemini API is not connected. Please set your API key in the `.env` file and restart the app.",
+                "text": "⚠️ Groq API is not connected. Please set your GROQ_API_KEY in the `.env` file and restart the app.",
             }
         else:
             with st.spinner("🔍 Analyzing your data..."):
-                # Send to Gemini
+                # Send to Groq
                 raw_response, parsed_json = send_message(st.session_state.chat_session, user_query)
 
                 # Process intent and get results
                 response = handle_intent(
                     datasets, parsed_json, raw_response,
-                    st.session_state.gemini_model, user_query
+                    st.session_state.groq_client, user_query
                 )
 
                 # Build bot response
@@ -586,7 +586,7 @@ elif st.session_state.page == "📄 About":
     | Layer | Purpose | Technology |
     |-------|---------|-----------|
     | **Layer 1** | Chat Interface | Streamlit |
-    | **Layer 2** | NLP Processing | Google Gemini API |
+    | **Layer 2** | NLP Processing | Groq API (LLaMA 3.3) |
     | **Layer 3** | Analytics Engine | Pandas, NumPy |
     | **Layer 4** | Visualization | Plotly, Matplotlib |
     | **Layer 5** | Report Generation | FPDF2 |
