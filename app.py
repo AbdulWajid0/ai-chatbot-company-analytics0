@@ -34,127 +34,199 @@ st.set_page_config(
 )
 
 # ============================================================
-# CUSTOM CSS — Premium Dark Theme
+# CUSTOM CSS — Premium Modern Theme
 # ============================================================
 st.markdown("""
 <style>
     /* === MAIN BACKGROUND === */
     .stApp {
-        background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+        background: radial-gradient(circle at top left, #1a1a2e 0%, #16213e 50%, #0f172a 100%);
+        color: #f1f5f9;
+        font-family: 'Inter', sans-serif;
     }
 
     /* === SIDEBAR STYLING === */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
-        border-right: 1px solid rgba(0, 212, 170, 0.15);
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        border-right: 1px solid rgba(0, 212, 170, 0.1);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+    }
+    
+    .st-emotion-cache-16txtl3 {
+        padding: 2rem 1rem;
     }
 
     /* === HEADER === */
     .main-header {
-        background: linear-gradient(135deg, rgba(0,212,170,0.1) 0%, rgba(0,100,200,0.1) 100%);
-        border: 1px solid rgba(0,212,170,0.2);
-        border-radius: 16px;
-        padding: 25px 30px;
-        margin-bottom: 25px;
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 30px 40px;
+        margin-bottom: 30px;
         text-align: center;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
     }
     .main-header h1 {
-        background: linear-gradient(135deg, #00D4AA, #0088CC);
+        background: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 2.2em;
+        font-size: 2.8em;
         font-weight: 800;
         margin: 0;
+        letter-spacing: -0.5px;
     }
     .main-header p {
-        color: #8892a0;
-        margin: 8px 0 0 0;
-        font-size: 1.05em;
+        color: #94a3b8;
+        margin: 12px 0 0 0;
+        font-size: 1.15em;
+        font-weight: 400;
     }
 
-    /* === KPI CARDS === */
+    /* === KPI CARDS (Glassmorphism) === */
     .kpi-card {
-        background: linear-gradient(135deg, rgba(0,212,170,0.08) 0%, rgba(0,100,200,0.08) 100%);
-        border: 1px solid rgba(0,212,170,0.2);
-        border-radius: 12px;
-        padding: 18px;
+        background: rgba(30, 41, 59, 0.6);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        padding: 22px 20px;
         text-align: center;
-        transition: transform 0.2s, border-color 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        height: 100%;
     }
     .kpi-card:hover {
-        border-color: rgba(0,212,170,0.5);
-        transform: translateY(-2px);
+        transform: translateY(-5px);
+        border-color: rgba(0, 242, 254, 0.4);
+        box-shadow: 0 12px 25px rgba(0, 242, 254, 0.15);
     }
     .kpi-value {
-        font-size: 1.6em;
+        font-size: 2em;
         font-weight: 800;
-        background: linear-gradient(135deg, #00D4AA, #00AAFF);
+        background: linear-gradient(135deg, #00D4AA, #4FACFE);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        line-height: 1.2;
     }
     .kpi-label {
-        color: #8892a0;
-        font-size: 0.85em;
-        margin-top: 5px;
+        color: #94a3b8;
+        font-size: 0.9em;
+        font-weight: 500;
+        margin-top: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     /* === CHAT MESSAGES === */
     .chat-user {
-        background: linear-gradient(135deg, rgba(0,136,204,0.15) 0%, rgba(0,212,170,0.1) 100%);
-        border: 1px solid rgba(0,136,204,0.25);
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin: 10px 0;
-        color: #e0e0e0;
+        background: rgba(79, 172, 254, 0.15);
+        border: 1px solid rgba(79, 172, 254, 0.3);
+        border-radius: 18px 18px 0 18px;
+        padding: 16px 22px;
+        margin: 15px 0 15px auto;
+        color: #f8fafc;
+        max-width: 85%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        font-size: 1.05em;
+        line-height: 1.5;
     }
     .chat-bot {
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin: 10px 0;
-        color: #d0d0d0;
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px 18px 18px 0;
+        padding: 16px 22px;
+        margin: 15px auto 15px 0;
+        color: #e2e8f0;
+        max-width: 90%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        font-size: 1.05em;
+        line-height: 1.6;
     }
 
     /* === INSIGHT BOX === */
     .insight-box {
-        background: linear-gradient(135deg, rgba(255,215,0,0.06) 0%, rgba(255,140,0,0.06) 100%);
-        border-left: 4px solid #FFD700;
+        background: linear-gradient(135deg, rgba(250, 204, 21, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        border-left: 4px solid #FACC15;
         border-radius: 0 12px 12px 0;
-        padding: 15px 20px;
-        margin: 10px 0;
-        color: #e0d8c0;
+        padding: 18px 22px;
+        margin: 15px 0;
+        color: #fef08a;
+        font-size: 1em;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* === EXPANDER/ACCORDION === */
+    .streamlit-expanderHeader {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        color: #e2e8f0 !important;
     }
 
-    /* === SUGGESTED QUESTION BUTTONS === */
-    .stButton > button {
-        background: rgba(0,212,170,0.08) !important;
-        border: 1px solid rgba(0,212,170,0.25) !important;
-        color: #00D4AA !important;
-        border-radius: 25px !important;
-        padding: 8px 16px !important;
-        font-size: 0.85em !important;
-        transition: all 0.2s !important;
+    /* === BUTTONS === */
+    div.stButton > button {
+        background: rgba(0, 242, 254, 0.1) !important;
+        border: 1px solid rgba(0, 242, 254, 0.3) !important;
+        color: #4FACFE !important;
+        border-radius: 100px !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
     }
-    .stButton > button:hover {
-        background: rgba(0,212,170,0.2) !important;
-        border-color: rgba(0,212,170,0.5) !important;
-        transform: translateY(-1px) !important;
+    div.stButton > button:hover {
+        background: rgba(0, 242, 254, 0.2) !important;
+        border-color: #00F2FE !important;
+        transform: translateY(-2px) !important;
+        color: #fff !important;
+        box-shadow: 0 6px 15px rgba(0, 242, 254, 0.2) !important;
+    }
+    
+    /* === TAB STYLING === */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: transparent;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(30, 41, 59, 0.5);
+        border-radius: 8px 8px 0 0;
+        border: 1px solid rgba(255,255,255,0.05);
+        border-bottom: none;
+        color: #94a3b8;
+        padding: 10px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(47, 65, 86, 0.8) !important;
+        color: #4FACFE !important;
+        border-top: 2px solid #00F2FE !important;
     }
 
     /* === DATA TABLES === */
     .stDataFrame {
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
     }
 
-    /* === SCROLLBAR === */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-    ::-webkit-scrollbar-thumb {
-        background: rgba(0,212,170,0.3);
-        border-radius: 3px;
+    /* === METRICS === */
+    [data-testid="stMetricValue"] {
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        color: #f1f5f9 !important;
     }
+    [data-testid="stMetricLabel"] {
+        font-size: 1rem !important;
+        color: #94a3b8 !important;
+    }
+
+    /* === CHAT INPUT === */
+    .stChatInputContainer {
+        border-radius: 24px !important;
+        padding-bottom: 20px !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -281,11 +353,10 @@ if st.session_state.page == "💬 Chat":
         content = message["content"]
 
         if role == "user":
-            st.markdown(f'<div class="chat-user">👤 <strong>You:</strong> {content}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chat-user">{content}</div>', unsafe_allow_html=True)
         else:
             with st.container():
-                st.markdown(f'<div class="chat-bot">🤖 <strong>Assistant:</strong></div>', unsafe_allow_html=True)
-                st.markdown(content.get("text", ""))
+                st.markdown(f'<div class="chat-bot">✨ <strong>BI Assistant</strong><br><br>{content.get("text", "")}</div>', unsafe_allow_html=True)
 
                 # Display chart if present
                 if content.get("chart"):
@@ -298,13 +369,13 @@ if st.session_state.page == "💬 Chat":
 
                 # Display AI insight if present
                 if content.get("insight"):
-                    st.markdown(f'<div class="insight-box">💡 <strong>AI Insight:</strong><br>{content["insight"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="insight-box">💡 <strong>Executive Insight:</strong><br>{content["insight"]}</div>', unsafe_allow_html=True)
 
                 # PDF Report download
                 if content.get("report_path"):
                     with open(content["report_path"], "rb") as f:
                         st.download_button(
-                            "📥 Download PDF Report",
+                            "📥 Download Executive Report (PDF)",
                             data=f,
                             file_name=os.path.basename(content["report_path"]),
                             mime="application/pdf"
@@ -403,45 +474,40 @@ elif st.session_state.page == "📊 Dashboard":
 
         st.markdown("---")
 
-        # --- Quick Charts ---
+        # --- Quick Charts (Now with Tabs) ---
         st.markdown("### 📊 Key Visualizations")
 
         if "sales" in datasets:
             sales = datasets["sales"]
 
-            col1, col2 = st.columns(2)
-
-            with col1:
-                # Revenue by Category
-                cat_revenue = sales.groupby("category", as_index=False)["revenue"].sum()
-                fig = create_chart(cat_revenue, "pie", "Revenue by Category")
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
-
-            with col2:
-                # Monthly Revenue Trend
+            tab1, tab2, tab3 = st.tabs(["💰 Revenue Trends", "🛒 Product & Category", "🌍 Regional Performance"])
+            
+            with tab1:
                 monthly = sales.groupby("year_month", as_index=False)["revenue"].sum()
                 monthly = monthly.rename(columns={"year_month": "Period"})
-                fig = create_chart(monthly, "line", "Monthly Revenue Trend")
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
+                fig1 = create_chart(monthly, "line", "Monthly Revenue Trend")
+                if fig1:
+                    st.plotly_chart(fig1, use_container_width=True)
 
-            col3, col4 = st.columns(2)
+            with tab2:
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    top_products = sales.groupby("product", as_index=False)["revenue"].sum()
+                    top_products = top_products.sort_values("revenue", ascending=False).head(5)
+                    fig2 = create_chart(top_products, "bar", "Top 5 Products")
+                    if fig2:
+                        st.plotly_chart(fig2, use_container_width=True)
+                with col_b:
+                    cat_revenue = sales.groupby("category", as_index=False)["revenue"].sum()
+                    fig3 = create_chart(cat_revenue, "pie", "Revenue by Category")
+                    if fig3:
+                        st.plotly_chart(fig3, use_container_width=True)
 
-            with col3:
-                # Top Products
-                top_products = sales.groupby("product", as_index=False)["revenue"].sum()
-                top_products = top_products.sort_values("revenue", ascending=False).head(7)
-                fig = create_chart(top_products, "bar", "Top Products by Revenue")
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
-
-            with col4:
-                # Revenue by Region
+            with tab3:
                 region_rev = sales.groupby("region", as_index=False)["revenue"].sum()
-                fig = create_chart(region_rev, "bar", "Revenue by Region")
-                if fig:
-                    st.plotly_chart(fig, use_container_width=True)
+                fig4 = create_chart(region_rev, "bar", "Revenue by Region")
+                if fig4:
+                    st.plotly_chart(fig4, use_container_width=True)
 
         # --- Quick Insights ---
         st.markdown("---")
