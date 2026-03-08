@@ -10,18 +10,39 @@ Run: streamlit run app.py
 import streamlit as st
 import sys
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils.config import APP_TITLE, APP_ICON, PAGE_LAYOUT, GROQ_API_KEY
-from modules.data_loader import load_all_datasets, get_dataset_summary
-from modules.nlp_engine import initialize_groq, get_chat_session, send_message, clean_response_text
-from modules.intent_handler import handle_intent
-from modules.insight_generator import generate_executive_summary, generate_quick_insights, get_suggested_questions
-from modules.report_generator import generate_report
-from modules.forecasting import forecast_revenue, get_seasonal_pattern, get_growth_metrics
-from modules.visualizer import create_chart
+try:
+    from utils.config import APP_TITLE, APP_ICON, PAGE_LAYOUT, GROQ_API_KEY
+    from modules.data_loader import load_all_datasets, get_dataset_summary
+    from modules.nlp_engine import initialize_groq, get_chat_session, send_message
+    from modules.intent_handler import handle_intent
+    from modules.insight_generator import (
+        generate_executive_summary,
+        generate_quick_insights,
+        get_suggested_questions
+    )
+    from modules.report_generator import generate_report
+    from modules.forecasting import (
+        forecast_revenue,
+        get_seasonal_pattern,
+        get_growth_metrics
+    )
+    from modules.visualizer import create_chart
+except ImportError as e:
+    logger.error(f"Import error: {e}")
+    st.error(f"Missing required modules. Please ensure all dependencies are installed: {e}")
+    st.stop()
 
 # ============================================================
 # PAGE CONFIGURATION
@@ -50,10 +71,6 @@ st.markdown("""
         background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
         border-right: 1px solid rgba(0, 212, 170, 0.1);
         box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-    }
-    
-    .st-emotion-cache-16txtl3 {
-        padding: 2rem 1rem;
     }
 
     /* === HEADER === */
@@ -221,12 +238,6 @@ st.markdown("""
         color: #94a3b8 !important;
     }
 
-    /* === CHAT INPUT === */
-    .stChatInputContainer {
-        border-radius: 24px !important;
-        padding-bottom: 20px !important;
-    }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -245,7 +256,7 @@ def init_session_state():
     if "chat_session" not in st.session_state:
         st.session_state.chat_session = None
     if "page" not in st.session_state:
-        st.session_state.page = "chat"
+        st.session_state.page = "💬 Chat"
 
 init_session_state()
 
@@ -255,8 +266,14 @@ init_session_state()
 # ============================================================
 @st.cache_data
 def load_data():
-    datasets = load_all_datasets()
-    return datasets
+    """Load datasets with caching."""
+    try:
+        datasets = load_all_datasets()
+        return datasets
+    except Exception as e:
+        logger.error(f"Error loading datasets: {e}")
+        st.error(f"Error loading datasets: {e}")
+        return {}
 
 datasets = load_data()
 st.session_state.datasets = datasets
@@ -266,12 +283,17 @@ st.session_state.datasets = datasets
 # GROQ INITIALIZATION
 # ============================================================
 def init_groq():
-    if st.session_state.groq_client is None:
-        client = initialize_groq()
-        if client:
-            st.session_state.groq_client = client
-            dataset_summary = get_dataset_summary(datasets)
-            st.session_state.chat_session = get_chat_session(client, dataset_summary)
+    """Initialize Groq client and chat session."""
+    if st.session_state.groq_client is None and GROQ_API_KEY:
+        try:
+            client = initialize_groq()
+            if client:
+                st.session_state.groq_client = client
+                dataset_summary = get_dataset_summary(datasets)
+                st.session_state.chat_session = get_chat_session(client, dataset_summary)
+                logger.info("✅ Groq initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing Groq: {e}")
 
 init_groq()
 
@@ -287,7 +309,8 @@ with st.sidebar:
     page = st.radio(
         "Navigate",
         ["💬 Chat", "📊 Dashboard", "🔮 Forecast", "📄 About"],
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key="page_selector"
     )
     st.session_state.page = page
 
@@ -295,18 +318,20 @@ with st.sidebar:
 
     # API Status
     if st.session_state.groq_client:
-        st.success("✅ Groq API Connected (LLaMA)")
+        st.success("✅ Groq API Connected")
     else:
         st.error("❌ Groq API Not Connected")
-        st.info("Set your GROQ_API_KEY in the `.env` file")
+        if not GROQ_API_KEY:
+            st.info("💡 Create a `.env` file with your `GROQ_API_KEY`")
 
     # Dataset Status
     st.markdown("### 📁 Loaded Datasets")
-    for name, df in datasets.items():
-        st.markdown(f"- **{name.title()}**: {len(df):,} records")
-
-    if not datasets:
-        st.warning("⚠️ No datasets found! Run `python generate_data.py` first.")
+    if datasets:
+        for name, df in datasets.items():
+            st.markdown(f"- **{name.title()}**: {len(df):,} records")
+    else:
+        st.warning("⚠️ No datasets found!")
+        st.info("Run `python generate_data.py` to create sample data")
 
     st.markdown("---")
     st.markdown("### 💡 Quick Tips")
@@ -316,6 +341,11 @@ with st.sidebar:
     - Ask for **KPIs and forecasts**
     - Download **PDF reports**
     """)
+    
+    # Clear chat button
+    if st.button("🗑️ Clear Chat History", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
 
 
 # ============================================================
@@ -341,7 +371,7 @@ if st.session_state.page == "💬 Chat":
         st.markdown("### 💡 Try asking:")
         suggestions = get_suggested_questions()
         cols = st.columns(2)
-        for i, question in enumerate(suggestions):
+        for i, question in enumerate(suggestions[:6]):  # Show first 6
             with cols[i % 2]:
                 if st.button(question, key=f"suggest_{i}", use_container_width=True):
                     st.session_state.messages.append({"role": "user", "content": question})
@@ -356,30 +386,38 @@ if st.session_state.page == "💬 Chat":
             st.markdown(f'<div class="chat-user">{content}</div>', unsafe_allow_html=True)
         else:
             with st.container():
-                st.markdown(f'<div class="chat-bot">✨ <strong>BI Assistant</strong><br><br>{content.get("text", "")}</div>', unsafe_allow_html=True)
+                text = content.get("text", "") if isinstance(content, dict) else str(content)
+                st.markdown(f'<div class="chat-bot">✨ <strong>BI Assistant</strong><br><br>{text}</div>', unsafe_allow_html=True)
 
                 # Display chart if present
-                if content.get("chart"):
+                if isinstance(content, dict) and content.get("chart"):
                     st.plotly_chart(content["chart"], use_container_width=True)
 
                 # Display data table if present
-                if content.get("result_df") is not None:
+                if isinstance(content, dict) and content.get("result_df") is not None:
                     with st.expander("📋 View Data Table", expanded=False):
                         st.dataframe(content["result_df"], use_container_width=True)
 
                 # Display AI insight if present
-                if content.get("insight"):
-                    st.markdown(f'<div class="insight-box">💡 <strong>Executive Insight:</strong><br>{content["insight"]}</div>', unsafe_allow_html=True)
+                if isinstance(content, dict) and content.get("insight"):
+                    st.markdown(
+                        f'<div class="insight-box">💡 <strong>Executive Insight:</strong><br>{content["insight"]}</div>',
+                        unsafe_allow_html=True
+                    )
 
                 # PDF Report download
-                if content.get("report_path"):
-                    with open(content["report_path"], "rb") as f:
-                        st.download_button(
-                            "📥 Download Executive Report (PDF)",
-                            data=f,
-                            file_name=os.path.basename(content["report_path"]),
-                            mime="application/pdf"
-                        )
+                if isinstance(content, dict) and content.get("report_path"):
+                    try:
+                        with open(content["report_path"], "rb") as f:
+                            st.download_button(
+                                "📥 Download Executive Report (PDF)",
+                                data=f,
+                                file_name=os.path.basename(content["report_path"]),
+                                mime="application/pdf",
+                                key=f"download_{len(st.session_state.messages)}"
+                            )
+                    except Exception as e:
+                        logger.error(f"Error providing download: {e}")
 
     # --- Chat Input ---
     user_query = st.chat_input("Ask me about your company data...")
@@ -393,35 +431,42 @@ if st.session_state.page == "💬 Chat":
             }
         else:
             with st.spinner("🔍 Analyzing your data..."):
-                # Send to Groq
-                raw_response, parsed_json = send_message(st.session_state.chat_session, user_query)
+                try:
+                    # Send to Groq
+                    raw_response, parsed_json = send_message(st.session_state.chat_session, user_query)
 
-                # Process intent and get results
-                response = handle_intent(
-                    datasets, parsed_json, raw_response,
-                    st.session_state.groq_client, user_query
-                )
+                    # Process intent and get results
+                    response = handle_intent(
+                        datasets, parsed_json, raw_response,
+                        st.session_state.groq_client, user_query
+                    )
 
-                # Build bot response
-                bot_response = {
-                    "text": response["response_text"],
-                    "chart": response["chart"],
-                    "result_df": response["result_df"],
-                    "insight": response["insight"],
-                    "report_path": None,
-                }
+                    # Build bot response
+                    bot_response = {
+                        "text": response["response_text"],
+                        "chart": response["chart"],
+                        "result_df": response["result_df"],
+                        "insight": response["insight"],
+                        "report_path": None,
+                    }
 
-                # Generate PDF report if there are results
-                if response["result_df"] is not None and len(response["result_df"]) > 0:
-                    try:
-                        report_path = generate_report(
-                            user_query,
-                            response["result_df"],
-                            response.get("insight", ""),
-                        )
-                        bot_response["report_path"] = report_path
-                    except Exception:
-                        pass
+                    # Generate PDF report if there are results
+                    if response["result_df"] is not None and len(response["result_df"]) > 0:
+                        try:
+                            report_path = generate_report(
+                                user_query,
+                                response["result_df"],
+                                response.get("insight", ""),
+                            )
+                            bot_response["report_path"] = report_path
+                        except Exception as e:
+                            logger.error(f"Error generating report: {e}")
+
+                except Exception as e:
+                    logger.error(f"Error processing query: {e}")
+                    bot_response = {
+                        "text": f"I encountered an error processing your request: {str(e)}"
+                    }
 
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
         st.rerun()
@@ -440,28 +485,33 @@ elif st.session_state.page == "📊 Dashboard":
             sales = datasets["sales"]
             col1, col2, col3, col4 = st.columns(4)
 
+            total_rev = sales['revenue'].sum() if 'revenue' in sales.columns else 0
+            total_profit = sales['profit'].sum() if 'profit' in sales.columns else 0
+            avg_margin = sales['profit_margin'].mean() if 'profit_margin' in sales.columns else 0
+            total_qty = sales['quantity'].sum() if 'quantity' in sales.columns else 0
+
             with col1:
                 st.markdown(f"""
                 <div class="kpi-card">
-                    <div class="kpi-value">${sales['revenue'].sum()/1_000_000:.1f}M</div>
+                    <div class="kpi-value">${total_rev/1_000_000:.1f}M</div>
                     <div class="kpi-label">Total Revenue</div>
                 </div>""", unsafe_allow_html=True)
             with col2:
                 st.markdown(f"""
                 <div class="kpi-card">
-                    <div class="kpi-value">${sales['profit'].sum()/1_000_000:.1f}M</div>
+                    <div class="kpi-value">${total_profit/1_000_000:.1f}M</div>
                     <div class="kpi-label">Total Profit</div>
                 </div>""", unsafe_allow_html=True)
             with col3:
                 st.markdown(f"""
                 <div class="kpi-card">
-                    <div class="kpi-value">{sales['profit_margin'].mean():.1f}%</div>
+                    <div class="kpi-value">{avg_margin:.1f}%</div>
                     <div class="kpi-label">Avg Profit Margin</div>
                 </div>""", unsafe_allow_html=True)
             with col4:
                 st.markdown(f"""
                 <div class="kpi-card">
-                    <div class="kpi-value">{sales['quantity'].sum():,}</div>
+                    <div class="kpi-value">{total_qty:,}</div>
                     <div class="kpi-label">Units Sold</div>
                 </div>""", unsafe_allow_html=True)
 
@@ -469,12 +519,16 @@ elif st.session_state.page == "📊 Dashboard":
 
         # --- Executive Summary ---
         st.markdown("### 📋 Executive Summary")
-        summary = generate_executive_summary(datasets)
-        st.markdown(summary)
+        try:
+            summary = generate_executive_summary(datasets)
+            st.markdown(summary)
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}")
+            st.error("Unable to generate summary")
 
         st.markdown("---")
 
-        # --- Quick Charts (Now with Tabs) ---
+        # --- Quick Charts ---
         st.markdown("### 📊 Key Visualizations")
 
         if "sales" in datasets:
@@ -483,38 +537,58 @@ elif st.session_state.page == "📊 Dashboard":
             tab1, tab2, tab3 = st.tabs(["💰 Revenue Trends", "🛒 Product & Category", "🌍 Regional Performance"])
             
             with tab1:
-                monthly = sales.groupby("year_month", as_index=False)["revenue"].sum()
-                monthly = monthly.rename(columns={"year_month": "Period"})
-                fig1 = create_chart(monthly, "line", "Monthly Revenue Trend")
-                if fig1:
-                    st.plotly_chart(fig1, use_container_width=True)
+                try:
+                    if 'year_month' in sales.columns and 'revenue' in sales.columns:
+                        monthly = sales.groupby("year_month", as_index=False)["revenue"].sum()
+                        monthly = monthly.rename(columns={"year_month": "Period"})
+                        fig1 = create_chart(monthly, "line", "Monthly Revenue Trend")
+                        if fig1:
+                            st.plotly_chart(fig1, use_container_width=True)
+                except Exception as e:
+                    logger.error(f"Error creating revenue chart: {e}")
 
             with tab2:
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    top_products = sales.groupby("product", as_index=False)["revenue"].sum()
-                    top_products = top_products.sort_values("revenue", ascending=False).head(5)
-                    fig2 = create_chart(top_products, "bar", "Top 5 Products")
-                    if fig2:
-                        st.plotly_chart(fig2, use_container_width=True)
+                    try:
+                        if 'product' in sales.columns and 'revenue' in sales.columns:
+                            top_products = sales.groupby("product", as_index=False)["revenue"].sum()
+                            top_products = top_products.sort_values("revenue", ascending=False).head(5)
+                            fig2 = create_chart(top_products, "bar", "Top 5 Products")
+                            if fig2:
+                                st.plotly_chart(fig2, use_container_width=True)
+                    except Exception as e:
+                        logger.error(f"Error creating product chart: {e}")
+                        
                 with col_b:
-                    cat_revenue = sales.groupby("category", as_index=False)["revenue"].sum()
-                    fig3 = create_chart(cat_revenue, "pie", "Revenue by Category")
-                    if fig3:
-                        st.plotly_chart(fig3, use_container_width=True)
+                    try:
+                        if 'category' in sales.columns and 'revenue' in sales.columns:
+                            cat_revenue = sales.groupby("category", as_index=False)["revenue"].sum()
+                            fig3 = create_chart(cat_revenue, "pie", "Revenue by Category")
+                            if fig3:
+                                st.plotly_chart(fig3, use_container_width=True)
+                    except Exception as e:
+                        logger.error(f"Error creating category chart: {e}")
 
             with tab3:
-                region_rev = sales.groupby("region", as_index=False)["revenue"].sum()
-                fig4 = create_chart(region_rev, "bar", "Revenue by Region")
-                if fig4:
-                    st.plotly_chart(fig4, use_container_width=True)
+                try:
+                    if 'region' in sales.columns and 'revenue' in sales.columns:
+                        region_rev = sales.groupby("region", as_index=False)["revenue"].sum()
+                        fig4 = create_chart(region_rev, "bar", "Revenue by Region")
+                        if fig4:
+                            st.plotly_chart(fig4, use_container_width=True)
+                except Exception as e:
+                    logger.error(f"Error creating region chart: {e}")
 
         # --- Quick Insights ---
         st.markdown("---")
         st.markdown("### 💡 Quick Insights")
-        insights = generate_quick_insights(datasets)
-        for insight in insights:
-            st.markdown(f"- {insight}")
+        try:
+            insights = generate_quick_insights(datasets)
+            for insight in insights:
+                st.markdown(f"- {insight}")
+        except Exception as e:
+            logger.error(f"Error generating insights: {e}")
 
 
 # ============================================================
@@ -529,47 +603,58 @@ elif st.session_state.page == "🔮 Forecast":
     else:
         sales = datasets["sales"]
 
-        # Forecast
-        forecast_periods = st.slider("Forecast periods (months ahead):", 1, 6, 3)
-        forecast_df = forecast_revenue(sales, periods=forecast_periods)
+        try:
+            # Forecast
+            forecast_periods = st.slider("Forecast periods (months ahead):", 1, 6, 3)
+            forecast_df = forecast_revenue(sales, periods=forecast_periods)
 
-        if forecast_df is not None:
-            # Forecast Chart
-            fig = create_chart(forecast_df[["Date", "Revenue", "Type"]], "line", "Revenue Forecast")
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
-
-            # Growth Metrics
-            metrics = get_growth_metrics(sales)
-            if metrics:
-                st.markdown("### 📈 Growth Metrics")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    mom = metrics.get("mom_growth", 0)
-                    st.metric("Month-over-Month", f"{mom:+.1f}%",
-                              delta=f"{mom:.1f}%")
-                with col2:
-                    qoq = metrics.get("qoq_growth", 0)
-                    st.metric("Quarter-over-Quarter", f"{qoq:+.1f}%",
-                              delta=f"{qoq:.1f}%")
-                with col3:
-                    yoy = metrics.get("yoy_growth", 0)
-                    st.metric("Year-over-Year", f"{yoy:+.1f}%",
-                              delta=f"{yoy:.1f}%")
-
-            # Seasonal Pattern
-            st.markdown("---")
-            st.markdown("### 🌊 Seasonal Pattern")
-            seasonal = get_seasonal_pattern(sales)
-            if seasonal is not None:
+            if forecast_df is not None and len(forecast_df) > 0:
+                # Forecast Chart
                 fig = create_chart(
-                    seasonal[["month_name", "avg_revenue"]].rename(columns={"month_name": "Month", "avg_revenue": "Avg Revenue"}),
-                    "bar", "Average Revenue by Month"
+                    forecast_df[["Date", "Revenue", "Type"]],
+                    "line",
+                    "Revenue Forecast"
                 )
                 if fig:
                     st.plotly_chart(fig, use_container_width=True)
 
-                st.dataframe(seasonal, use_container_width=True)
+                # Growth Metrics
+                metrics = get_growth_metrics(sales)
+                if metrics:
+                    st.markdown("### 📈 Growth Metrics")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        mom = metrics.get("mom_growth", 0)
+                        st.metric("Month-over-Month", f"{mom:+.1f}%", delta=f"{mom:.1f}%")
+                    with col2:
+                        qoq = metrics.get("qoq_growth", 0)
+                        st.metric("Quarter-over-Quarter", f"{qoq:+.1f}%", delta=f"{qoq:.1f}%")
+                    with col3:
+                        yoy = metrics.get("yoy_growth", 0)
+                        st.metric("Year-over-Year", f"{yoy:+.1f}%", delta=f"{yoy:.1f}%")
+
+                # Seasonal Pattern
+                st.markdown("---")
+                st.markdown("### 🌊 Seasonal Pattern")
+                seasonal = get_seasonal_pattern(sales)
+                if seasonal is not None:
+                    fig = create_chart(
+                        seasonal[["month_name", "avg_revenue"]].rename(
+                            columns={"month_name": "Month", "avg_revenue": "Avg Revenue"}
+                        ),
+                        "bar",
+                        "Average Revenue by Month"
+                    )
+                    if fig:
+                        st.plotly_chart(fig, use_container_width=True)
+
+                    st.dataframe(seasonal, use_container_width=True)
+            else:
+                st.warning("Unable to generate forecast. Please check your data.")
+                
+        except Exception as e:
+            logger.error(f"Error in forecast page: {e}")
+            st.error(f"Error generating forecast: {e}")
 
 
 # ============================================================
@@ -579,31 +664,38 @@ elif st.session_state.page == "📄 About":
     st.markdown("""
     ### About This Project
 
-    **AI Chatbot with Company Data Analysis Capability** is a Conversational Business Intelligence Assistant
-    built as an internship project.
+    **AI Chatbot with Company Data Analysis Capability** is a Conversational Business Intelligence Assistant.
 
     #### 🏗 Architecture
     | Layer | Purpose | Technology |
     |-------|---------|-----------|
-    | **Layer 1** | Chat Interface | Streamlit |
-    | **Layer 2** | NLP Processing | Groq API (LLaMA 3.3) |
-    | **Layer 3** | Analytics Engine | Pandas, NumPy |
-    | **Layer 4** | Visualization | Plotly, Matplotlib |
-    | **Layer 5** | Report Generation | FPDF2 |
+    | **Frontend** | Chat Interface | Streamlit |
+    | **NLP** | Query Processing | Groq API (LLaMA 3.3) |
+    | **Analytics** | Data Operations | Pandas, NumPy |
+    | **Visualization** | Charts | Plotly |
+    | **Reporting** | PDF Generation | FPDF2 |
 
     #### 🤖 Capabilities
-    - Natural language query processing
-    - Dynamic data analysis (filter, aggregate, rank, trend)
-    - Auto-generated interactive charts
-    - Revenue forecasting with seasonal analysis
-    - PDF report generation
-    - Executive KPI dashboards
-
-    #### 👥 Team
-    Built by a team of 9 interns.
+    - ✅ Natural language query processing
+    - ✅ Dynamic data analysis (filter, aggregate, rank, trend)
+    - ✅ Auto-generated interactive charts
+    - ✅ Revenue forecasting with seasonal analysis
+    - ✅ PDF report generation
+    - ✅ Executive KPI dashboards
 
     #### 📊 Datasets
     - **Sales Data**: Product sales, revenue, profit, regions, channels
     - **HR Data**: Employee records, performance, attrition, departments
     - **Finance Data**: Budget vs actual, department expenses, variance
+
+    #### 🔧 Setup Instructions
+    1. Install dependencies: `pip install -r requirements.txt`
+    2. Create `.env` file with your `GROQ_API_KEY`
+    3. Generate sample data: `python generate_data.py`
+    4. Run the app: `streamlit run app.py`
+
+    #### 📝 Version
+    Version 2.0 - Enhanced with improved error handling and modularity
     """)
+
+logger.info("Application loaded successfully")
