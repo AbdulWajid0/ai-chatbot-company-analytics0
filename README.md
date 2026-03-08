@@ -82,9 +82,6 @@ ai-chatbot-company-analytics/
 └── docs/                       # Documentation
 ```
 
-## 👥 Team
-
-Built by a team of 9 members as an internship project.
 
 ## 📄 License
 
